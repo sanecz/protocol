@@ -549,6 +549,7 @@ if __name__ == "__main__":
 
     if not protocols.protocol:
         parser.print_usage()
+        exit()
 
     if args.merge:
         print protocols.multiple_run()
