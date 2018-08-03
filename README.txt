@@ -260,23 +260,29 @@
     using command-line parameter. The following list provides a description of
     each option available.
 
-    Usage: protocol {<protocol> or <spec>} [OPTIONS]
-    PARAMETERS:
-     <protocol>          : Name of an existing protocol
-     <spec>              : Field by field specification of non-existing protocol
-    OPTIONS:
-     -b, --bits <n>      : Number of bits per line
-     -f, --file          : Read specs from a text file
-     -h, --help          : Displays this help information
-     -n, --no-numbers    : Do not print bit numbers on top of the header
-     -V, --version       : Displays current version
-     --evenchar  <char>  : Character for the even positions of horizontal lines
-     --oddchar   <char>  : Character for the odd positions of horizontal lines
-     --startchar <char>  : Character that starts horizontal lines
-     --endchar   <char>  : Character that ends horizontal lines
-     --sepchar   <char>  : Character that separates protocol fields
-
-
+    usage: protocol <protocols or specs> [OPTIONS]
+    
+    positional arguments:
+      protocol              Name of an existing protocol or a field by field 
+      			    specification of non-existing protocol
+    
+    optional arguments:
+      -h, --help            show this help message and exit
+      -f FILE, --file FILE  Read specs from a text file
+      -l, --list            List all available protocols
+      -m, --merge           Merge Headers to one
+      -b BITS, --bits BITS  Number of bits per line
+      -n, --no-numbers      Do not print bit numbers on top of the header
+      --evenchar EVENCHAR   Character for the even positions of horizontal table
+      		 	    borders
+      --oddchar ODDCHAR     Character for the odd positions of horizontal table
+      		            borders
+      --startchar STARTCHAR
+                            Character that starts horizontal table borders
+      --endchar ENDCHAR     Character that ends horizontal table borders
+      --sepchar SEPCHAR     Character that separates protocol fields
+      --version, -V         Displays current version
+    
  0x05 - EXAMPLES
 
    This section presents additional examples on how to run protocol.
