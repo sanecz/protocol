@@ -57,6 +57,7 @@
 
 # STANDARD LIBRARY IMPORTS
 import sys
+import argparse
 from datetime import date
 
 # INTERNAL IMPORTS
@@ -83,7 +84,9 @@ class Protocol():
     can be printed by converting them to a str type.
     """
 
-    def __init__(self, spec):
+    protocol = []
+
+    def __init__(self):
         """
         Class constructor.
         @param spec is the textual specification that describes the protocol.
@@ -96,9 +99,22 @@ class Protocol():
         self.bits_per_line=32                  # Number of bits per line
         self.do_print_top_tens=True            # True: print top numbers for bit tens
         self.do_print_top_units=True           # True: print top numbers for bit units
-        self.field_list=[]                     # Header fields to be printed out
-        self.parse_spec(spec)                  # Parse the received spec and populate self.field_list
+        self.do_print_top = True
 
+    def run(self, spec):
+        self.field_list=[]                     # Header fields to be printed out
+        field_list = self.parse_spec(spec)     # Parse the received spec and populate self.field_list
+        return self.generate_ascii(field_list)
+
+    # quick fix, ETA: make it work with argparse, i'll correct this things later
+    @property
+    def do_print_top(self):
+        return self.do_print_top_tens and self.do_print_top_units
+
+    @do_print_top.setter
+    def do_print_top(self, value):
+        self.do_print_top_tens = value
+        self.do_print_top_units = value
 
     def parse_spec(self, spec):
         """
@@ -109,6 +125,7 @@ class Protocol():
         caller is expected to store or use such list.
         @raise ProtocolException in case the supplied spec is not valid
         """
+        field_list = []
         if "?" in spec:
             parts=spec.split("?")
             fields=parts[0]
@@ -131,7 +148,7 @@ class Protocol():
                 raise
             except:
                 raise ProtocolException("FATAL: Invalid field_list specification (%s)" %spec)
-            self.field_list.append({"text":text, "len":bits})
+            field_list.append({"text":text, "len":bits})
 
         # Parse options
         if opts is not None:
@@ -171,7 +188,7 @@ class Protocol():
                 except:
                     raise ProtocolException("FATAL: Invalid options specification (%s)" % opt)
 
-        return self.field_list
+        return field_list
 
 
     def _get_top_numbers(self):
@@ -224,7 +241,7 @@ class Protocol():
         return self.hdr_char_sep
 
 
-    def _process_field_list(self):
+    def _process_field_list(self, field_list):
         """
         Processes the list of protocol fields that we got from the spec and turns
         it into something that we can print easily (useful for cases when we have
@@ -234,9 +251,9 @@ class Protocol():
         new_fields=[]
         bits_in_line=0
         i=0
-        while i < len(self.field_list):
+        while i < len(field_list):
             # Extract all the info we need about the field
-            field=self.field_list[i]
+            field=field_list[i]
             field_text= field['text']
             field_len=  field['len']
             field['MF']=False
@@ -287,7 +304,7 @@ class Protocol():
 
 
     # Convert to string
-    def __str__(self):
+    def generate_ascii(self, field_list):
         """
         Converts the protocol specification stored in the object to a nice
         ASCII diagram like the ones that appear in RFCs. Conversion supports
@@ -299,7 +316,7 @@ class Protocol():
 
         # First of all, process our field list. This does some magic to make
         # the algorithm work for fields that span more than one line
-        proto_fields = self._process_field_list()
+        proto_fields = self._process_field_list(field_list)
         lines=[]
         numbers=self._get_top_numbers()
         if numbers is not None:
@@ -531,7 +548,8 @@ class Main():
                 continue
 
             # If we have something else, treat it as a protocol spec
-            proto=Protocol(line)
+            proto=Protocol()
+            proto.run(line)
             self.protocols.append(proto)
             i+=1
 
@@ -665,7 +683,8 @@ class Main():
                     # will call sys.exit() itself, so there is no need to do
                     # error checking here.
                     try:
-                        proto = Protocol(spec)
+                        proto = Protocol()
+                        proto.run(spec)
                         self.protocols.append(proto)
                     except ProtocolException as e:
                         print("ERROR: %s" % str(e))
@@ -721,6 +740,52 @@ class Main():
                 print("")
 
 
+
+# parsing and sanitazing the arguments
+
+def single_char(value):
+    # only a single char is allowed for the table
+    if len(value) != 1:
+        raise argparse.ArgumentTypeError("Single character excepted: '{}'.".format(value))
+    return value
+
+def strict_positive_value(value):
+    try:
+        # not integer values of under 0 cannot be used
+        value = int(value)
+        if value <= 0:
+            raise ValueError()
+    except ValueError:
+        raise argparse.ArgumentTypeError("Invalid number of bits per line supplied: '{}'.".format(value))
+    return value
+
+def check_protocol_or_spec(value):
+    # We have a spec or a protocol
+    if not (value.count(":") or value in specs.protocols):
+        raise argparse.ArgumentTypeError("Protocol '{}' unknown.".format(value))
+    return value
+
+
+class update(argparse.Action):
+    def __call__(self, parser, args, values, option_string=None):
+        args.protocol += [specs.protocols[value] for value in values]
+
+class parseFile(argparse.Action):
+    def __call__(self, parser, args, filecontent, option_string=None):
+        args.protocol += [specs.protocols[value] for value in self._get_protocols(filecontent)]
+
+    @staticmethod
+    def _get_protocols(filecontent):
+        protocols = []
+        lines = filecontent.readlines()
+        for line in lines:
+            line = line.strip()
+            if not line.startswith("#"):
+                check_protocol_or_spec(line)
+                protocols.append(line)
+        return protocols
+                
+
 # Main function
 def main():
     """
@@ -736,4 +801,51 @@ def main():
 
 # THIS IS THE START OF THE EXECUTION
 if __name__ == "__main__":
-    main()
+
+    description = """{} v{}\n
+    Copyright (C) {}, {} ({}).
+    This software comes with ABSOLUTELY NO WARRANTY.""".format(
+        APPLICATION_NAME, APPLICATION_VERSION,
+        max(2014, date.today().year),
+        APPLICATION_AUTHOR, APPLICATION_AUTHOR_EMAIL
+    )
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawTextHelpFormatter,
+        description=description,
+        prog=APPLICATION_NAME,
+        usage="{} <protocols or specs> [OPTIONS]".format(APPLICATION_NAME.lower())
+    )
+    
+
+    parser.add_argument("protocol", nargs="*", action=update, type=check_protocol_or_spec,
+                        help="Name of an existing protocol " \
+                        "\nOR a field by field specification of non-existing protocol")
+    parser.add_argument("-f", "--file", type=file, action=parseFile,
+                        help="Read specs from a text file")
+    parser.add_argument("-b", "--bits", type=strict_positive_value, default=32, dest="bits_per_line",
+                        metavar="BITS", help="Number of bits per line")
+    parser.add_argument("-n", "--no-numbers", action="store_false", default=True, dest="do_print_top",
+                        help="Do not print bit numbers on top of the header")
+    parser.add_argument("--evenchar", type=single_char, default="-", dest="hdr_char_fill_even",
+                        metavar="EVENCHAR", help="Character for the even positions of horizontal table borders")
+    parser.add_argument("--oddchar", type=single_char, default="+", dest="hdr_char_fill_odd",
+                        metavar="ODDCHAR", help="Character for the odd positions of horizontal table borders")
+    parser.add_argument("--startchar", type=single_char, default="+", dest="hdr_char_start",
+                        metavar="STARTCHAR", help="Character that starts horizontal table borders")
+    parser.add_argument("--endchar", type=single_char, default="+", dest="hdr_char_end",
+                        metavar="ENDCHAR", help="Character that ends horizontal table borders")
+    parser.add_argument("--sepchar", type=single_char, default="|", dest="hdr_char_sep",
+                        metavar="SEPCHAR", help="Character that separates protocol fields")
+    parser.add_argument("--version", "-V", action="version",
+                        version="{} v{}".format(APPLICATION_NAME, APPLICATION_VERSION),
+                        help="Displays current version")
+
+    protocols = Protocol()
+    args = parser.parse_args(namespace=protocols)
+
+    if not protocols.protocol:
+        parser.print_usage()
+
+    for protocol in protocols.protocol:
+        print protocols.run(protocol)
