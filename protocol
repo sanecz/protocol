@@ -466,6 +466,13 @@ def check_protocol_or_spec(value):
         raise argparse.ArgumentTypeError("Protocol '{}' unknown.".format(value))
     return value
 
+class showAvailableProtocols(argparse.Action):
+    def __call__(self, parser, args, values, option_string=None):
+        print "Available protocols: "
+        specs_list = specs.protocols.keys()
+        for a, b, c, d in zip(specs_list[::4], specs_list[1::4], specs_list[2::4], specs_list[3::4]):
+            print '{:<30}{:<30}{:<30}{:<}'.format(a,b,c, d)
+        exit()
 
 class update(argparse.Action):
     def __call__(self, parser, args, values, option_string=None):
@@ -510,6 +517,8 @@ if __name__ == "__main__":
                         "\nOR a field by field specification of non-existing protocol")
     parser.add_argument("-f", "--file", type=file, action=parseFile,
                         help="Read specs from a text file")
+    parser.add_argument("-l", "--list", nargs=0, action=showAvailableProtocols,
+                        help="List all available protocols")
     parser.add_argument("-b", "--bits", type=strict_positive_value, default=32, dest="bits_per_line",
                         metavar="BITS", help="Number of bits per line")
     parser.add_argument("-n", "--no-numbers", action="store_false", default=True, dest="do_print_top",
