@@ -97,7 +97,6 @@ class Protocol():
 
     def run(self, spec):
         field_list = self.parse_spec(spec)     # Parse the received spec and populate self.field_list
-        print field_list
         return self.generate_ascii(field_list)
 
     def multiple_run(self):
