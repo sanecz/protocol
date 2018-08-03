@@ -116,64 +116,65 @@ class Protocol():
         """
         field_list = []
         if "?" in spec:
-            parts=spec.split("?")
-            fields=parts[0]
-            opts=parts[1]
-            if spec.count("?")>1:
+            if spec.count("?") > 1:
                 raise ProtocolException("FATAL: Character '?' may only be used as an option separator.")
+            fields, opts = spec.split("?")
         else:
-            fields=spec
-            opts=None
+            fields, opts = spec, None
 
         # Parse field spec
-        items=fields.split(",")
+        items = fields.split(",")
         for item in items:
             try:
                 text, bits = item.split(":")
-                bits=int(bits)
-                if bits<=0:
+                bits = int(bits)
+                if bits <= 0:
                     raise ProtocolException("FATAL: Fields must be at least one bit long (%s)" %spec)
-            except ProtocolException:
-                raise
-            except:
+            except ValueError:
                 raise ProtocolException("FATAL: Invalid field_list specification (%s)" %spec)
+            
             field_list.append({"text":text, "len":bits})
 
-        # Parse options
-        if opts is not None:
-            opts=opts.split(",")
-            for opt in opts:
+
+        def parse_txt_bool(value):
+            if value in ["0", "n", "no", "none", "false"]:
+                return False
+            elif value in ["1", "y", "yes", "true"]:
+                return True
+            else:
+                raise ProtocolException("FATAL: Invalid value for boolean value: '{}'".format(value))
+
+
+        if not opts:
+            return field_list
+
+        opts = opts.lower().split(",")
+        delimiters  = {
+            "oddchar": "hdr_char_fill_odd", "evenchar": "hdr_char_fill_even",
+            "startchar": "hdr_char_start", "endchar": "hdr_char_end", "sepchar": "hdr_char_sep"
+        }
+
+        for opt in opts:
+            try:
+                var, value = opt.split("=")
+            except ValueError:
+                raise ProtocolException("FATAL: Invalid option/missing formatting? '{}'".format(opt))                
+            if var == "numbers":
+                self.do_print_top = parse_txt_bool(value)
+            elif var =="bits":
                 try:
-                    var, value = opt.split("=")
-                    if var.lower()=="bits":
-                        self.bits_per_line=int(value)
-                        if self.bits_per_line<=0:
-                            raise ProtocolException("FATAL: Invalid value for 'bits' option (%s)" % value)
-                    elif var.lower()=="numbers":
-                        if value.lower() in ["0", "n", "no", "none", "false"]:
-                            self.do_print_top = False
-                        elif value.lower() in ["1", "y", "yes", "none", "true"]:
-                            self.do_print_top = True
-                        else:
-                            raise ProtocolException("FATAL: Invalid value for 'numbers' option (%s)" % value)
-                    elif var.lower() in ["oddchar", "evenchar", "startchar", "endchar", "sepchar"]:
-                        if len(value)>1 or len(value)<=0:
-                            raise ProtocolException("FATAL: Invalid value for '%s' option (%s)" % (var, value))
-                        else:
-                            if var.lower()=="oddchar":
-                                self.hdr_char_fill_odd=value
-                            elif var.lower()=="evenchar":
-                                self.hdr_char_fill_even=value
-                            elif var.lower()=="startchar":
-                                self.hdr_char_start=value
-                            elif var.lower()=="endchar":
-                                self.hdr_char_end=value
-                            elif var.lower()=="sepchar":
-                                self.hdr_char_sep=value
-                except ProtocolException:
-                    raise
-                except:
-                    raise ProtocolException("FATAL: Invalid options specification (%s)" % opt)
+                    self.bits_per_line = int(value)
+                    if self.bits_per_line <= 0:
+                        raise ValueError
+                except ValueError:
+                    raise ProtocolException("FATAL: Invalid value for 'bits' option '{}'".format(value))
+            elif var in delimiters.keys():
+                if len(value) != 1:
+                    raise ProtocolException("FATAL: Invalid value for '{}' option '{}'".format(var, value))
+                else:
+                    setattr(self, delimiters[var], value)
+            else:
+                raise ProtocolException("FATAL: Invalid option '{}'".format(var))
 
         return field_list
 
@@ -197,7 +198,6 @@ class Protocol():
         if self.do_print_top:
             for i in range(0, self.bits_per_line):
                 lines[1]+=" %s" % str(i)[-1:]
-            #lines[1]+="\n"
         result = "".join(lines)
         return  result if len(result)>0 else None
 

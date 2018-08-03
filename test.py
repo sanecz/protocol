@@ -271,7 +271,6 @@ invalidcases=[
 "Field_32:32?sepchar=",
 "Field_32:32?sepchar=AAA",
 "Field_32:32?unknown",
-"Field_32:32?",
 "Field_32:32FieldThatContains?Sign",
 "Field_32:32?sepchar=A,",
 "Field_32:32,Field_8?sepchar=A,",
