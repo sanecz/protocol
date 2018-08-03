@@ -84,7 +84,16 @@ class Protocol():
     can be printed by converting them to a str type.
     """
 
+    # Default values for this class
+
     protocol = []
+    hdr_char_start="+"                # Character for start of the border line
+    hdr_char_end="+"                  # Character for end of the border line
+    hdr_char_fill_odd="+"             # Fill character for border odd positions
+    hdr_char_fill_even="-"            # Fill character for border even positions
+    hdr_char_sep="|"                  # Field separator character
+    bits_per_line=32                  # Number of bits per line
+    do_print_top=True                 # True: print top numbers
 
     def run(self, spec):
         self.field_list=[]                     # Header fields to be printed out

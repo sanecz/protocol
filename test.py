@@ -290,7 +290,7 @@ class ProtocolTests(unittest.TestCase):
         """
         for i in range(0, len(validcases)):
             print("Testing Valid Spec '%s'" % validcases[i][0])
-            p = protocol.Protocol(validcases[i][0])
+            p = protocol.Protocol().run(validcases[i][0])
             self.assertEqual(str(p), validcases[i][1])
 
     def test_invalid_specs(self):
@@ -301,7 +301,8 @@ class ProtocolTests(unittest.TestCase):
         """
         for i in range(0, len(invalidcases)):
             print("Testing Invalid Spec '%s'" % invalidcases[i])
-            self.assertRaises(protocol.ProtocolException, protocol.Protocol, invalidcases[i])
+            with self.assertRaises(protocol.ProtocolException):
+                p = protocol.Protocol().run(invalidcases[i])
 
 if __name__ == '__main__':
     # Print our fancy ASCII header
