@@ -96,8 +96,14 @@ class Protocol():
     do_print_top=True                 # True: print top numbers
 
     def run(self, spec):
-        self.field_list=[]                     # Header fields to be printed out
         field_list = self.parse_spec(spec)     # Parse the received spec and populate self.field_list
+        print field_list
+        return self.generate_ascii(field_list)
+
+    def multiple_run(self):
+        field_list = []
+        for spec in self.protocol:
+            field_list += self.parse_spec(spec)
         return self.generate_ascii(field_list)
 
     def parse_spec(self, spec):
@@ -519,6 +525,7 @@ if __name__ == "__main__":
                         help="Read specs from a text file")
     parser.add_argument("-l", "--list", nargs=0, action=showAvailableProtocols,
                         help="List all available protocols")
+    parser.add_argument("-m", "--merge",action="store_true", default=False, help="Merge Headers to one")
     parser.add_argument("-b", "--bits", type=strict_positive_value, default=32, dest="bits_per_line",
                         metavar="BITS", help="Number of bits per line")
     parser.add_argument("-n", "--no-numbers", action="store_false", default=True, dest="do_print_top",
@@ -543,5 +550,8 @@ if __name__ == "__main__":
     if not protocols.protocol:
         parser.print_usage()
 
-    for protocol in protocols.protocol:
-        print protocols.run(protocol)
+    if args.merge:
+        print protocols.multiple_run()
+    else:
+        for protocol in protocols.protocol:
+            print protocols.run(protocol)
