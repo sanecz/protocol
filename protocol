@@ -86,13 +86,6 @@ class Protocol():
 
     protocol = []
 
-    def __init__(self):
-        """
-        Class constructor.
-        @param spec is the textual specification that describes the protocol.
-        """
-        self.do_print_top = True
-
     def run(self, spec):
         self.field_list=[]                     # Header fields to be printed out
         field_list = self.parse_spec(spec)     # Parse the received spec and populate self.field_list
@@ -485,20 +478,6 @@ class parseFile(argparse.Action):
         return protocols
                 
 
-# Main function
-def main():
-    """
-    Main function. Runs the Protocol program.
-    """
-
-    # Instance our core class
-    program = Main()
-
-    # Do our magic
-    program.run()
-
-
-# THIS IS THE START OF THE EXECUTION
 if __name__ == "__main__":
 
     description = """{} v{}\n
