@@ -468,7 +468,15 @@ def strict_positive_value(value):
 def check_protocol_or_spec(value):
     # We have a spec or a protocol
     if not (value.count(":") or value in specs.protocols):
-        raise argparse.ArgumentTypeError("Protocol '{}' unknown.".format(value))
+        protocols = autocomplete_protocol_name(value)
+        if len(protocols) == 1:
+            return protocols[0]
+        elif len(protocols) != 0:
+            print "Ambiguous protocol specifier '{}'. Did you mean any of these?".format(value)
+            print " \n".join(protocols)
+            exit()
+        else:
+            raise argparse.ArgumentTypeError("Protocol '{}' unknown.".format(value))
     return value
 
 class showAvailableProtocols(argparse.Action):
@@ -481,23 +489,37 @@ class showAvailableProtocols(argparse.Action):
 
 class update(argparse.Action):
     def __call__(self, parser, args, values, option_string=None):
-        args.protocol += [specs.protocols[value] for value in values]
+        for value in values:
+            value = check_protocol_or_spec(value)
+            args.protocol.append(specs.protocols[value])
 
 class parseFile(argparse.Action):
-    def __call__(self, parser, args, filecontent, option_string=None):
-        args.protocol += [specs.protocols[value] for value in self._get_protocols(filecontent)]
+    def __call__(self, parser, args, filename, option_string=None):
+        for value in self._get_protocols(filename):
+            value = check_protocol_or_spec(value)
+            args.protocol.append(specs.protocols[value])
 
     @staticmethod
-    def _get_protocols(filecontent):
+    def _get_protocols(filename):
         protocols = []
-        lines = filecontent.readlines()
-        for line in lines:
-            line = line.strip()
-            if not line.startswith("#"):
-                check_protocol_or_spec(line)
-                protocols.append(line)
+        with open(filename, "ro") as filecontent:
+            lines = filecontent.readlines()
+            for line in lines:
+                line = line.strip()
+                if not line.startswith("#"):
+                    check_protocol_or_spec(line)
+                    protocols.append(line)
         return protocols
                 
+
+def autocomplete_protocol_name(protocol):
+    protocol_list = []
+    if protocol in specs.protocols.keys():
+        return [protocol]
+    for word in specs.protocols.keys():
+        if word.startswith(protocol):
+            protocol_list.append(word)
+    return protocol_list 
 
 if __name__ == "__main__":
 
@@ -517,10 +539,10 @@ if __name__ == "__main__":
     )
     
 
-    parser.add_argument("protocol", nargs="*", action=update, type=check_protocol_or_spec,
+    parser.add_argument("protocol", nargs="*", action=update,
                         help="Name of an existing protocol " \
                         "\nOR a field by field specification of non-existing protocol")
-    parser.add_argument("-f", "--file", type=file, action=parseFile,
+    parser.add_argument("-f", "--file", action=parseFile,
                         help="Read specs from a text file")
     parser.add_argument("-l", "--list", nargs=0, action=showAvailableProtocols,
                         help="List all available protocols")
