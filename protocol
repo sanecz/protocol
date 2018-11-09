@@ -483,13 +483,15 @@ class update(argparse.Action):
     def __call__(self, parser, args, values, option_string=None):
         for value in values:
             value = check_protocol_or_spec(value)
-            args.protocol.append(specs.protocols[value])
+            # .get(value, value) if spec instead of protocol
+            args.protocol.append(specs.protocols.get(value, value))
 
 class parseFile(argparse.Action):
     def __call__(self, parser, args, filename, option_string=None):
         for value in self._get_protocols(filename):
             value = check_protocol_or_spec(value)
-            args.protocol.append(specs.protocols[value])
+            # .get(value, value) if spec instead of protocol
+            args.protocol.append(specs.protocols.get(value, value))
 
     @staticmethod
     def _get_protocols(filename):
@@ -557,6 +559,7 @@ if __name__ == "__main__":
                         version="{} v{}".format(APPLICATION_NAME, APPLICATION_VERSION),
                         help="Displays current version")
 
+
     protocols = Protocol()
     args = parser.parse_args(namespace=protocols)
 
@@ -569,3 +572,4 @@ if __name__ == "__main__":
     else:
         for protocol in protocols.protocol:
             print protocols.run(protocol)
+
